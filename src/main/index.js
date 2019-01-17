@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import {app, BrowserWindow, ipcMain} from 'electron'
 
 /**
  * Set `__static` path to static files in production
@@ -13,22 +13,47 @@ const winURL = process.env.NODE_ENV === 'development'
   ? `http://localhost:9080`
   : `file://${__dirname}/index.html`
 
+const isReadyClose = {}
+
 function createWindow () {
   /**
    * Initial window options
    */
   mainWindow = new BrowserWindow({
-    height: 563,
+    width: 400,
+    height: 300,
+    // minWidth: 710,
+    // minHeight: 500,
     useContentSize: true,
-    width: 1000
+    maximizable: false,
+    resizable: false,
+    show: false,
+    frame: false
   })
 
   mainWindow.loadURL(winURL)
+  mainWindow.on('ready-to-show', () => {
+    mainWindow.show()
+  })
+
+  mainWindow.on("close", event => {
+    if (!isReadyClose.main) {
+      event.preventDefault()
+      mainWindow.webContents.send('questClose', 'main')
+    }
+  })
 
   mainWindow.on('closed', () => {
     mainWindow = null
   })
 }
+
+ipcMain.on('answerClose', (ev, arg) => {
+  isReadyClose[arg.name] = arg.answerClose
+  if (arg.answerClose) {
+    if (arg.name === 'main') mainWindow.close()
+  }
+})
 
 app.on('ready', createWindow)
 
